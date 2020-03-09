@@ -5,10 +5,10 @@ require_relative './lib/mini-cli/version'
 GemSpec = Gem::Specification.new do |gem|
   gem.name = 'mini-cli'
   gem.version = MiniCli::VERSION
-  gem.summary = 'The minimalistic CLI framework for Ruby'
+  gem.summary = 'The lean CLI framework for Ruby'
   gem.description = <<~DESC
-    This gem is a minimalistic, easy to use CLI framework with a very small
-    footprint. I provides an easy to use argument parsing, help displaying and
+    This gem is a lean, easy to use CLI framework with a very small footprint.
+    It provides an easy to use argument parsing, help displaying and
     minimalistic error handling.
   DESC
   gem.author = 'Mike Blumtritt'

@@ -1,6 +1,6 @@
 # Mini Cli
 
-This gem is a minimalistic, easy to use CLI framework with a very small footprint. I provides an easy to use argument parsing, help displaying, minimalistic error handling and some tools like executing external programs and gather their output.
+This gem is a lean, easy to use CLI framework with a very small footprint. It provides an easy to use argument parsing, help displaying, minimalistic error handling and some tools like executing external programs and gather their output.
 
 ## Installation
 
