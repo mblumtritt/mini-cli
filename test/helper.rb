@@ -11,14 +11,15 @@ class Test < Minitest::Test
   attr_reader :subject
 
   def setup
-    @subject = Class.new do
-      include MiniCli
-      attr_reader :exit_args
+    @subject =
+      Class.new do
+        include MiniCli
+        attr_reader :exit_args
 
-      def exit(*args)
-        @exit_args = args
-      end
-    end.new
+        def exit(*args)
+          @exit_args = args
+        end
+      end.new
   end
 
   def assert_stop_with_error(code, text, &block)

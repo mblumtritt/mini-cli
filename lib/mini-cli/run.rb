@@ -4,7 +4,7 @@ require 'open3'
 
 module MiniCli
   def run(*cmd)
-    opts = Hash === cmd.last ? __run_opt(cmd.last) : [:stdout]
+    opts = Hash === cmd.last ? __run_opt(cmd.last) : %i[stdout]
     opts.delete(:stderr) ? __run3(opts, cmd) : __run2(opts, cmd)
   rescue SystemCallError
     nil
@@ -27,6 +27,6 @@ module MiniCli
   end
 
   def __run_opt(opts)
-    %i[stdout stderr status].keep_if{ |s| opts.delete(s) }
+    %i[stdout stderr status].keep_if { |s| opts.delete(s) }
   end
 end

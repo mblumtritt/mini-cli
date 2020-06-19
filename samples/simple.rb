@@ -9,6 +9,4 @@ help <<~HELP
   This is a very simple sample without any required parameter.
 HELP
 
-main do |args|
-  puts("given files: #{args['FILES']}")
-end
+main { |args| puts("given files: #{args['FILES']}") }

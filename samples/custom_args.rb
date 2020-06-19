@@ -11,15 +11,12 @@ help <<~HELP, %w[TARGET [SOURCE]]
       --opt        option without any argument
 HELP
 
-main do |cfg|
-  cfg.each_pair{ |key, value| puts("#{key}: #{value}") }
-end
+main { |cfg| cfg.each_pair { |key, value| puts("#{key}: #{value}") } }
 
 parse_argv do |args|
   Struct.new(:target, :sources, :name, :url, :switch, :opt).new.tap do |cfg|
     cfg.target = args['TARGET']
-    # args['FILES'] is an array containing all surplus arguments
-    cfg.sources = args['FILES']
+    cfg.sources = args['FILES'] # args['FILES'] is an array containing all surplus arguments
     source = args['SOURCE'] || ENV['SOURCE']
     cfg.sources.unshift(source) if source
     cfg.sources << 'STDIN' if cfg.sources.empty?

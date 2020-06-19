@@ -3,21 +3,13 @@ require_relative '../helper'
 class MainTest < Test
   def test_defaults
     assert_equal('helper', subject.name)
-    assert_output("Usage: helper\n"){ subject.show_help }
+    assert_output("Usage: helper\n") { subject.show_help }
   end
 
   def test_methods
-    subject = Class.new{ include MiniCli }.new
+    subject = Class.new { include MiniCli }.new
 
-    expected_methods = %i[
-      error
-      help
-      main
-      name
-      parse_argv
-      run
-      show_help
-    ].sort!
+    expected_methods = %i[error help main name parse_argv run show_help].sort!
     methods = (subject.methods - Object.new.methods).sort!
     assert_equal(expected_methods, methods)
   end
@@ -27,9 +19,7 @@ class MainTest < Test
       subject.error(42, 'some error text')
     end
 
-    assert_stop_with_error(21, 'error') do
-      subject.error(21, :error)
-    end
+    assert_stop_with_error(21, 'error') { subject.error(21, :error) }
   end
 
   def test_help_simple
@@ -39,7 +29,7 @@ class MainTest < Test
       Some helptext
     EXPECTED
 
-    assert_output(expected_text){ subject.show_help }
+    assert_output(expected_text) { subject.show_help }
   end
 
   def test_help_with_args
@@ -54,7 +44,7 @@ class MainTest < Test
       here
     EXPECTED
 
-    assert_output(expected_text){ subject.show_help }
+    assert_output(expected_text) { subject.show_help }
   end
 
   def test_argument_required
@@ -64,10 +54,10 @@ class MainTest < Test
       subject.parse_argv(as_argv(''))
     end
 
-    expected = {'ARG' => 'arg', 'FILES' => []}
+    expected = { 'ARG' => 'arg', 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('arg')))
 
-    expected = {'ARG' => 'arg1', 'FILES' => %w[arg2 arg3]}
+    expected = { 'ARG' => 'arg1', 'FILES' => %w[arg2 arg3] }
     assert_equal(expected, subject.parse_argv(as_argv('arg1 arg2 arg3')))
   end
 
@@ -83,10 +73,10 @@ class MainTest < Test
       subject.parse_argv(as_argv(''))
     end
 
-    expected = {'ARG1' => 'arg1', 'ARG2' => 'arg2', 'FILES' => []}
+    expected = { 'ARG1' => 'arg1', 'ARG2' => 'arg2', 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('arg1 arg2')))
 
-    expected = {'ARG1' => 'arg', 'FILES' => []}
+    expected = { 'ARG1' => 'arg', 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('arg')))
   end
 
@@ -100,21 +90,21 @@ class MainTest < Test
       Some additional explaination can be here
     HELP
 
-    expected = {'FILES' => []}
+    expected = { 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('')))
 
-    expected = {'NAME' => 'name', 'FILES' => []}
+    expected = { 'NAME' => 'name', 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('--named name')))
     assert_equal(expected, subject.parse_argv(as_argv('-n name')))
 
-    expected = {'LNAME' => 'long', 'FILES' => []}
+    expected = { 'LNAME' => 'long', 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('--named-long long')))
 
-    expected = {'unnamed' => true, 'FILES' => []}
+    expected = { 'unnamed' => true, 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('--unnamed')))
     assert_equal(expected, subject.parse_argv(as_argv('-u')))
 
-    expected = {'un-named' => true, 'FILES' => []}
+    expected = { 'un-named' => true, 'FILES' => [] }
     assert_equal(expected, subject.parse_argv(as_argv('--un-named')))
 
     expected = {
@@ -125,23 +115,14 @@ class MainTest < Test
       'FILES' => %w[FILE1 FILE2]
     }
 
-    result = subject.parse_argv(%w[
-      --named name
-      --named-long long
-      --unnamed
-      --un-named
-      FILE1
-      FILE2
-    ])
+    result =
+      subject.parse_argv(
+        %w[--named name --named-long long --unnamed --un-named FILE1 FILE2]
+      )
     assert_equal(expected, result)
 
-    result = subject.parse_argv(%w[
-      -nu name
-      --named-long long
-      --un-named
-      FILE1
-      FILE2
-    ])
+    result =
+      subject.parse_argv(%w[-nu name --named-long long --un-named FILE1 FILE2])
     assert_equal(expected, result)
   end
 

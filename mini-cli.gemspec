@@ -27,5 +27,5 @@ GemSpec = Gem::Specification.new do |gem|
   all_files = %x(git ls-files -z).split(0.chr)
   gem.test_files = all_files.grep(%r{^(spec|test)/})
   gem.files = all_files - gem.test_files
-  # gem.extra_rdoc_files = %w[README.MD]
+  gem.extra_rdoc_files = %w[README.md]
 end

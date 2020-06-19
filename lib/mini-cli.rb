@@ -96,6 +96,7 @@ module MiniCli
       @args.each do |arg|
         next if arg.index('..')
         value = arguments.shift
+
         if arg.start_with?('[')
           @result[arg[1..-2]] = value if value
         else
