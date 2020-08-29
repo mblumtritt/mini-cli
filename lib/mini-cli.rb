@@ -25,8 +25,8 @@ module MiniCli
     exit(code)
   end
 
-  def parse_argv(argv = nil, &block)
-    return @__argv_converter = block if block
+  def parse_argv(argv = nil, &argv_converter)
+    return @__argv_converter = argv_converter if argv_converter
     argv ||= ARGV.dup
     exit(show_help) if argv.index('--help') || argv.index('-h')
     args = __argv_parser.parse(argv, method(:error).to_proc)
@@ -133,11 +133,11 @@ module MiniCli
         when /-([[:alnum:]]), --([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
           named_option(Regexp.last_match)
         when /--([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
-          named_option_short(Regexp.last_match)
+          named_short_option(Regexp.last_match)
         when /-([[:alnum:]]), --([[[:alnum:]]-]+)\s+\S+/
           option(Regexp.last_match)
         when /--([[[:alnum:]]-]+)\s+\S+/
-          option_short(Regexp.last_match)
+          short_option(Regexp.last_match)
         end
       end
     end
@@ -146,7 +146,7 @@ module MiniCli
       @options[match[1]] = @options[match[2]] = match[3]
     end
 
-    def named_option_short(match)
+    def named_short_option(match)
       @options[match[1]] = match[2]
     end
 
@@ -154,7 +154,7 @@ module MiniCli
       @options[match[1]] = @options[match[2]] = match[2]
     end
 
-    def option_short(match)
+    def short_option(match)
       @options[match[1]] = match[1]
     end
   end
