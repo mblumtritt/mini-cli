@@ -1,44 +1,47 @@
 require_relative '../helper'
 
 class RunTest < Test
-  def setup
-    super
-    @pwd = Dir.pwd + "\n"
+  def test_simple
+    result = subject.run('pwd')
+    assert_equal(Dir.pwd + "\n", result)
   end
 
-  def test_std_out_only
-    out = subject.run('pwd')
-    assert_equal(@pwd, out)
+  def test_simple_error
+    result = subject.run('ls /no-valid-dir')
+    assert_match(/No such file or directory/, result)
+  end
 
-    out = subject.run('pwd', stdout: true)
-    assert_equal(@pwd, out)
+  def test_chdir
+    home = Dir.home
+    refute(home == Dir.pwd)
+    result = subject.run('pwd', chdir: home)
+    assert_equal(home + "\n", result)
   end
 
   def test_status
-    result = subject.run('pwd', stdout: false)
-    assert_instance_of(TrueClass, result)
-
-    status = subject.run('pwd', status: true)
-    assert_instance_of(Process::Status, status)
-
-    out, status = subject.run('pwd', stdout: true, status: true)
-    assert_equal(@pwd, out)
+    status, result = subject.run('pwd', status: true)
     assert_instance_of(Process::Status, status)
     assert(status.success?)
+    assert_equal(Dir.pwd + "\n", result)
   end
 
-  def test_std_error
-    err = subject.run('ls /no-valid-dir', stderr: true)
-    assert_match(/No such file or directory/, err)
-
-    out, err = subject.run('ls /no-valid-dir', stdout: true, stderr: true)
-    assert_empty(out)
-    assert_match(/No such file or directory/, err)
-
-    err, status = subject.run('ls /no-valid-dir', stderr: true, status: true)
-    assert_match(/No such file or directory/, err)
+  def test_status_error
+    status, result = subject.run('ls /no-valid-dir', status: true)
     assert_instance_of(Process::Status, status)
     refute(status.success?)
+    assert_match(/No such file or directory/, result)
+  end
+
+  def test_stdin
+    string = 'Hello World'
+    result = subject.run('cat', stdin_data: string)
+    assert_equal(string, result)
+  end
+
+  def test_stdin_stream
+    stream = StringIO.new("Hello World")
+    result = subject.run('cat', stdin_data: stream)
+    assert_equal(stream.string, result)
   end
 
   def test_failure
