@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 require_relative '../helper'
 
 class RunTest < Test
   def test_simple
     result = subject.run('pwd')
-    assert_equal(Dir.pwd + "\n", result)
+    assert_equal("#{Dir.pwd}\n", result)
   end
 
   def test_simple_error
@@ -15,14 +17,14 @@ class RunTest < Test
     home = Dir.home
     refute(home == Dir.pwd)
     result = subject.run('pwd', chdir: home)
-    assert_equal(home + "\n", result)
+    assert_equal("#{home}\n", result)
   end
 
   def test_status
     status, result = subject.run('pwd', status: true)
     assert_instance_of(Process::Status, status)
     assert(status.success?)
-    assert_equal(Dir.pwd + "\n", result)
+    assert_equal("#{Dir.pwd}\n", result)
   end
 
   def test_status_error
@@ -39,7 +41,7 @@ class RunTest < Test
   end
 
   def test_stdin_stream
-    stream = StringIO.new("Hello World")
+    stream = StringIO.new('Hello World')
     result = subject.run('cat', stdin_data: stream)
     assert_equal(stream.string, result)
   end
