@@ -60,7 +60,7 @@ module MiniCli
       print(' [OPTIONS]') unless @options.empty?
       print(' ', @args.join(' ')) unless @args.empty?
       puts
-      puts(nil, 'Valid Options:') unless @options.empty?
+      puts(nil, 'Options:') unless @options.empty?
       puts(@helptext) unless @helptext.empty?
     end
 
@@ -89,7 +89,7 @@ module MiniCli
     private
 
     def error(msg)
-      @error.call(1, msg)
+      @error[1, msg]
     end
 
     def process(arguments)
@@ -108,22 +108,17 @@ module MiniCli
       @result
     end
 
-    def handle_option(option, argv)
+    def handle_option(option, argv, test = ->(k) { option == k })
       key = @options[option] || error("unknown option - #{option}")
-      return @result[key] = true if option == key
+      @result[key] = test[key] and return
       @result[key] = value = argv.shift
       return unless value.nil? || value.start_with?('-')
       error("parameter #{key} expected - --#{option}")
     end
 
     def parse_options(options, argv)
-      options.each_char do |opt|
-        key = @options[opt] || error("unknown option - #{opt}")
-        next @result[key] = true if key == key.downcase
-        @result[key] = value = argv.shift
-        next unless value.nil? || value.start_with?('-')
-        error("parameter #{key} expected - -#{opt}")
-      end
+      test = ->(k) { k == k.downcase }
+      options.each_char { |opt| handle_option(opt, argv, test) }
     end
 
     def parse_help!
@@ -131,9 +126,9 @@ module MiniCli
       @helptext.each_line do |line|
         case line
         when /-([[:alnum:]]), --([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
-          named_option(Regexp.last_match)
+          option_with_argument(Regexp.last_match)
         when /--([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
-          named_short_option(Regexp.last_match)
+          short_option_with_argument(Regexp.last_match)
         when /-([[:alnum:]]), --([[[:alnum:]]-]+)\s+\S+/
           option(Regexp.last_match)
         when /--([[[:alnum:]]-]+)\s+\S+/
@@ -142,11 +137,11 @@ module MiniCli
       end
     end
 
-    def named_option(match)
+    def option_with_argument(match)
       @options[match[1]] = @options[match[2]] = match[3]
     end
 
-    def named_short_option(match)
+    def short_option_with_argument(match)
       @options[match[1]] = match[2]
     end
 
