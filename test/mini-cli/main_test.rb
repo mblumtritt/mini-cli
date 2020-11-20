@@ -1,16 +1,29 @@
+# frozen_string_literal: true
+
 require_relative '../helper'
 
 class MainTest < Test
   def test_defaults
     assert_equal('helper', subject.name)
+    assert(subject.show_errors?)
     assert_output("Usage: helper\n") { subject.show_help }
   end
 
   def test_methods
     subject = Class.new { include MiniCli }.new
 
-    expected_methods = %i[error help main name parse_argv run show_help].sort!
-    methods = (subject.methods - Object.new.methods).sort!
+    expected_methods = %i[
+      error
+      help
+      main
+      name
+      parse_argv
+      run
+      show_errors=
+      show_errors?
+      show_help
+    ]
+    methods = (subject.methods - Object.instance_methods).sort!
     assert_equal(expected_methods, methods)
   end
 
@@ -20,6 +33,13 @@ class MainTest < Test
     end
 
     assert_stop_with_error(21, 'error') { subject.error(21, :error) }
+  end
+
+  def test_no_error
+    subject.show_errors = false
+
+    assert_output(nil, nil) { subject.error(666, 'some error text') }
+    assert_equal([666], subject.exit_args)
   end
 
   def test_help_simple

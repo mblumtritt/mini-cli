@@ -1,36 +1,41 @@
 # frozen_string_literal: true
 
 module MiniCli
-  def self.included(_)
-    return if const_defined?(:SRC)
-    const_set(:SRC, caller_locations(1, 1).first.absolute_path)
+  def self.included(mod)
+    source = caller_locations(1, 1).first.absolute_path
+    mod.const_set(:MiniCli__, Instance.new(source))
   end
 
   def name(name = nil)
-    return name ? @__name = name : @__name if defined?(@__name)
-    @__name = name || File.basename(MiniCli::SRC, '.*')
+    __minicli__.name(name)
   end
 
   def help(helptext, *args)
-    @__argv_parser = ArgvParser.new(helptext, args)
+    __minicli__.help(helptext, args)
   end
 
   def show_help
-    __argv_parser.show_help(name)
-    true
+    __minicli__.show_help
   end
 
-  def error(code, message)
-    $stderr.puts("#{name}: #{message}")
+  def show_errors?
+    __minicli__.show_errors
+  end
+
+  def show_errors=(value)
+    __minicli__.show_errors = value ? true : false
+  end
+
+  def error(code, message = nil)
+    $stderr.puts("#{name}: #{message}") if message && show_errors?
     exit(code)
   end
 
   def parse_argv(argv = nil, &argv_converter)
-    return @__argv_converter = argv_converter if argv_converter
+    return __minicli__.converter = argv_converter if argv_converter
     argv ||= ARGV.dup
     exit(show_help) if argv.index('--help') || argv.index('-h')
-    args = __argv_parser.parse(argv, method(:error).to_proc)
-    defined?(@__argv_converter) ? @__argv_converter.call(args) || args : args
+    __minicli__.convert(__minicli__.parse(argv, method(:error).to_proc))
   end
 
   def main(args = nil)
@@ -43,116 +48,159 @@ module MiniCli
 
   private
 
-  def __argv_parser
-    @__argv_parser ||= ArgvParser.new(nil, [])
+  def __minicli__
+    self.class::MiniCli__
   end
 
-  class ArgvParser
-    def initialize(helptext, args)
-      @helptext = helptext.to_s
-      @args = args.flatten.map!(&:to_s).uniq
-      @options = nil
+  class Instance
+    attr_reader :source
+    attr_writer :converter
+    attr_accessor :show_errors
+
+    def initialize(source)
+      @source = source
+      @name = File.basename(source, '.*')
+      @parser = @converter = nil
+      @show_errors = true
     end
 
-    def show_help(name)
-      parse_help! unless @options
-      print("Usage: #{name}")
-      print(' [OPTIONS]') unless @options.empty?
-      print(' ', @args.join(' ')) unless @args.empty?
-      puts
-      puts(nil, 'Options:') unless @options.empty?
-      puts(@helptext) unless @helptext.empty?
+    def name(name = nil)
+      name ? @name = name.to_s : @name
+    end
+
+    def help(helptext, args)
+      @parser = ArgvParser.new(helptext, args)
+    end
+
+    def show_help
+      parser.show_help(@name)
+      true
     end
 
     def parse(argv, error)
-      @error = error
-      parse_help! unless @options
-      @result, arguments = {}, []
-      loop do
-        case arg = argv.shift
-        when nil
-          break
-        when '--'
-          arguments += argv
-          break
-        when /\A--([[[:alnum:]]-]+)\z/
-          handle_option(Regexp.last_match[1], argv)
-        when /\A-([[:alnum:]]+)\z/
-          parse_options(Regexp.last_match[1], argv)
-        else
-          arguments << arg
-        end
-      end
-      process(arguments)
+      parser.parse(argv, error)
+    end
+
+    def convert(args)
+      @converter ? @converter.call(args) || args : args
     end
 
     private
 
-    def error(msg)
-      @error[1, msg]
+    def parser
+      @parser ||= ArgvParser.new(nil, [])
     end
 
-    def process(arguments)
-      @args.each do |arg|
-        next if arg.index('..')
-        value = arguments.shift
+    class ArgvParser
+      def initialize(helptext, args)
+        @helptext = helptext.to_s
+        @args = args.flatten.map!(&:to_s).uniq
+        @options = nil
+      end
 
+      def show_help(name)
+        parse_help! unless @options
+        print("Usage: #{name}")
+        print(' [OPTIONS]') unless @options.empty?
+        print(' ', @args.join(' ')) unless @args.empty?
+        puts
+        puts(nil, 'Options:') unless @options.empty?
+        puts(@helptext) unless @helptext.empty?
+      end
+
+      def parse(argv, error)
+        @error, @result = error, {}
+        parse_help! unless @options
+        process(parse_argv(argv))
+      end
+
+      private
+
+      def parse_argv(argv)
+        arguments = []
+        while (arg = argv.shift)
+          case arg
+          when '--'
+            arguments += argv
+            break
+          when /\A--([[[:alnum:]]-]+)\z/
+            handle_option(Regexp.last_match[1], argv)
+          when /\A-([[:alnum:]]+)\z/
+            parse_options(Regexp.last_match[1], argv)
+          else
+            arguments << arg
+          end
+        end
+        arguments
+      end
+
+      def error(msg)
+        @error[1, msg]
+      end
+
+      def process(arguments)
+        @args.each do |arg|
+          process_arg(arg, arguments.shift) unless arg.index('..')
+        end
+        arguments.unshift(@result['FILES']) if @result.key?('FILES')
+        @result['FILES'] = arguments
+        @result
+      end
+
+      def process_arg(arg, value)
         if arg.start_with?('[')
           @result[arg[1..-2]] = value if value
         else
           @result[arg] = value || error("parameter expected - #{arg}")
         end
       end
-      arguments.unshift(@result['FILES']) if @result.key?('FILES')
-      @result['FILES'] = arguments
-      @result
-    end
 
-    def handle_option(option, argv, test = ->(k) { option == k })
-      key = @options[option] || error("unknown option - #{option}")
-      @result[key] = test[key] and return
-      @result[key] = value = argv.shift
-      return unless value.nil? || value.start_with?('-')
-      error("parameter #{key} expected - --#{option}")
-    end
+      def handle_option(option, argv, test = ->(k) { option == k })
+        key = @options[option] || error("unknown option - #{option}")
+        @result[key] = test[key] and return
+        @result[key] = value = argv.shift
+        return unless value.nil? || value.start_with?('-')
+        error("parameter #{key} expected - --#{option}")
+      end
 
-    def parse_options(options, argv)
-      test = ->(k) { k == k.downcase }
-      options.each_char { |opt| handle_option(opt, argv, test) }
-    end
+      def parse_options(options, argv)
+        test = ->(k) { k == k.downcase }
+        options.each_char { |opt| handle_option(opt, argv, test) }
+      end
 
-    def parse_help!
-      @options = {}
-      @helptext.each_line do |line|
-        case line
-        when /-([[:alnum:]]), --([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
-          option_with_argument(Regexp.last_match)
-        when /--([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
-          short_option_with_argument(Regexp.last_match)
-        when /-([[:alnum:]]), --([[[:alnum:]]-]+)\s+\S+/
-          option(Regexp.last_match)
-        when /--([[[:alnum:]]-]+)\s+\S+/
-          short_option(Regexp.last_match)
+      def parse_help!
+        @options = {}
+        @helptext.each_line do |line|
+          case line
+          when /-([[:alnum:]]), --([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
+            option_with_argument(Regexp.last_match)
+          when /--([[[:alnum:]]-]+) ([[:upper:]]+)\s+\S+/
+            short_option_with_argument(Regexp.last_match)
+          when /-([[:alnum:]]), --([[[:alnum:]]-]+)\s+\S+/
+            option(Regexp.last_match)
+          when /--([[[:alnum:]]-]+)\s+\S+/
+            short_option(Regexp.last_match)
+          end
         end
       end
-    end
 
-    def option_with_argument(match)
-      @options[match[1]] = @options[match[2]] = match[3]
-    end
+      def option_with_argument(match)
+        @options[match[1]] = @options[match[2]] = match[3]
+      end
 
-    def short_option_with_argument(match)
-      @options[match[1]] = match[2]
-    end
+      def short_option_with_argument(match)
+        @options[match[1]] = match[2]
+      end
 
-    def option(match)
-      @options[match[1]] = @options[match[2]] = match[2]
-    end
+      def option(match)
+        @options[match[1]] = @options[match[2]] = match[2]
+      end
 
-    def short_option(match)
-      @options[match[1]] = match[1]
+      def short_option(match)
+        @options[match[1]] = match[1]
+      end
     end
   end
 
-  private_constant(:ArgvParser)
+  private_constant(:Instance)
 end
