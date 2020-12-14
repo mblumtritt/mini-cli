@@ -33,7 +33,7 @@ module MiniCli
 
   def parse_argv(argv = nil, &argv_converter)
     return __minicli__.converter = argv_converter if argv_converter
-    argv ||= ARGV.dup
+    argv ||= Array.new(ARGV)
     exit(show_help) if argv.index('--help') || argv.index('-h')
     __minicli__.convert(__minicli__.parse(argv, method(:error).to_proc))
   end
@@ -121,8 +121,7 @@ module MiniCli
         while (arg = argv.shift)
           case arg
           when '--'
-            arguments += argv
-            break
+            break arguments += argv
           when /\A--([[[:alnum:]]-]+)\z/
             handle_option(Regexp.last_match[1], argv)
           when /\A-([[:alnum:]]+)\z/
