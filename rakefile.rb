@@ -3,13 +3,11 @@
 require 'rake/testtask'
 require 'bundler/gem_tasks'
 
-STDOUT.sync = STDERR.sync = true
+$stdout.sync = $stderr.sync = true
+
+task(:default) { exec('rake --tasks') }
 
 CLOBBER << 'prj'
-
-task :default do
-  exec "#{$PROGRAM_NAME} --tasks"
-end
 
 Rake::TestTask.new(:test) do |t|
   t.ruby_opts = %w[-w]
