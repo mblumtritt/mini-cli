@@ -40,14 +40,14 @@ module MiniCli
 
   def parse_argv(argv = nil, &argv_converter)
     return __minicli__.converter = argv_converter if argv_converter
-    argv ||= Array.new(ARGV)
+    argv = Array.new(argv || ARGV)
     exit(show_help) if argv.index('--help') || argv.index('-h')
-    __minicli__.convert(__minicli__.parse(argv, method(:error).to_proc))
+    __minicli__.main(argv, method(:error).to_proc)
   end
 
-  def main(args = nil)
+  def main
     __minicli__.run do
-      yield(args || parse_argv)
+      yield(parse_argv)
     rescue Interrupt
       error(130, 'aborted')
     end
@@ -78,6 +78,7 @@ module MiniCli
       @parser = @converter = @main_proc = nil
       @before, @after = [], []
       @show_errors = true
+      @before_ok = false
       @error_code = 0
       init_main
     end
@@ -95,16 +96,15 @@ module MiniCli
       true
     end
 
-    def parse(argv, error)
-      parser.parse(argv, error)
-    end
-
-    def convert(args)
-      @converter ? @converter.call(args) || args : args
-    end
-
     def run(&main_proc)
       @main_proc = main_proc
+    end
+
+    def main(argv, error)
+      @before.each(&:call)
+      @before_ok = true
+      args = parser.parse(argv, error)
+      @converter ? @converter.call(args) || args : args
     end
 
     private
@@ -113,7 +113,6 @@ module MiniCli
       at_exit do
         next if $! and not ($!.kind_of?(SystemExit) and $!.success?)
         shutdown unless @after.empty?
-        @before.each(&:call)
         @main_proc&.call
       end
     end
@@ -121,7 +120,7 @@ module MiniCli
     def shutdown(pid = Process.pid)
       at_exit do
         next if Process.pid != pid
-        @after.reverse_each(&:call)
+        @after.reverse_each(&:call) if @before_ok
         exit(@error_code)
       end
     end

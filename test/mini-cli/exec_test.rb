@@ -29,15 +29,11 @@ class ExecTest < Minitest::Test
 
   def test_sequence_help
     expected = [
-      'before_1[]',
-      'before_2[]',
       'Usage: sequence [OPTIONS]',
       '',
       'Options:',
       '-x, --exit  early exit',
-      '-e, --error exit with error',
-      'after_2[]',
-      'after_1[]'
+      '-e, --error exit with error'
     ]
     assert_equal(expected, assert_no_err('sequence', '--help').split("\n"))
   end
