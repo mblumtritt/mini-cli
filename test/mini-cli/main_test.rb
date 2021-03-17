@@ -13,7 +13,10 @@ class MainTest < Test
     subject = Class.new { include MiniCli }.new
 
     expected_methods = %i[
+      after
+      before
       error
+      error_code
       help
       main
       name
@@ -175,5 +178,14 @@ class MainTest < Test
     }
     result = subject.parse_argv(as_argv('-nup name port in out opt file'))
     assert_equal(expected, result)
+  end
+
+  def test_run
+    call_sequence = []
+    subject.main { call_sequence << :main }
+    subject.before { call_sequence << :start_1 }
+    subject.after { call_sequence << :end_1 }
+    subject.before { call_sequence << :start_2 }
+    subject.after { call_sequence << :end_2 }
   end
 end

@@ -2,8 +2,11 @@
 
 module MiniCli
   def self.included(mod)
-    source = caller_locations(1, 1).first.absolute_path
-    mod.const_set(:MiniCli__, Instance.new(source))
+    mod.const_set(
+      :MiniCli__,
+      Instance.new(caller_locations(1, 1).first.absolute_path)
+    )
+    mod.private_constant(:MiniCli__)
   end
 
   def name(name = nil)
@@ -26,9 +29,13 @@ module MiniCli
     __minicli__.show_errors = value ? true : false
   end
 
+  def error_code
+    __minicli__.error_code
+  end
+
   def error(code, message = nil)
     $stderr.puts("#{name}: #{message}") if message && show_errors?
-    exit(code)
+    exit(__minicli__.error_code = code)
   end
 
   def parse_argv(argv = nil, &argv_converter)
@@ -39,29 +46,40 @@ module MiniCli
   end
 
   def main(args = nil)
-    at_exit do
+    __minicli__.run do
       yield(args || parse_argv)
     rescue Interrupt
       error(130, 'aborted')
     end
   end
 
+  def before(&callback)
+    callback and __minicli__.before << callback
+  end
+
+  def after(&callback)
+    callback and __minicli__.after << callback
+  end
+
   private
 
   def __minicli__
-    self.class::MiniCli__
+    self.class.const_get(:MiniCli__)
   end
 
   class Instance
     attr_reader :source
     attr_writer :converter
-    attr_accessor :show_errors
+    attr_accessor :show_errors, :before, :after, :error_code
 
     def initialize(source)
       @source = source
       @name = File.basename(source, '.*')
-      @parser = @converter = nil
+      @parser = @converter = @main_proc = nil
+      @before, @after = [], []
       @show_errors = true
+      @error_code = 0
+      init_main
     end
 
     def name(name = nil)
@@ -85,7 +103,28 @@ module MiniCli
       @converter ? @converter.call(args) || args : args
     end
 
+    def run(&main_proc)
+      @main_proc = main_proc
+    end
+
     private
+
+    def init_main
+      at_exit do
+        next if $! and not ($!.kind_of?(SystemExit) and $!.success?)
+        shutdown unless @after.empty?
+        @before.each(&:call)
+        @main_proc&.call
+      end
+    end
+
+    def shutdown(pid = Process.pid)
+      at_exit do
+        next if Process.pid != pid
+        @after.reverse_each(&:call)
+        exit(@error_code)
+      end
+    end
 
     def parser
       @parser ||= ArgvParser.new(nil, [])
