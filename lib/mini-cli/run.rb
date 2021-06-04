@@ -16,7 +16,7 @@ module MiniCli
 
   def run_ruby(*cmd, **run_options)
     require 'shellwords'
-    run(Shellwords.join(RUBY_CMD + cmd), **run_options)
+    run(Shellwords.join(RUBY_CMD_ + cmd), **run_options)
   end
 
   def run_script(script, status: false, chdir: nil)
@@ -24,11 +24,6 @@ module MiniCli
   end
 
   private
-
-  RUBY_CMD =
-    %w[--disable gems --disable did_you_mean --disable rubyopt].unshift(
-      RbConfig.ruby
-    ).freeze
 
   def __run_proc(stdin_data, in_write)
     return :read unless stdin_data
@@ -43,4 +38,11 @@ module MiniCli
       out.read
     end
   end
+
+  RUBY_CMD_ =
+    %w[--disable gems --disable did_you_mean --disable rubyopt].unshift(
+      RbConfig.ruby
+    ).freeze
+
+  private_constant(:RUBY_CMD_)
 end
