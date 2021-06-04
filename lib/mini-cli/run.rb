@@ -14,7 +14,21 @@ module MiniCli
     in_write&.close
   end
 
+  def run_ruby(*cmd, **run_options)
+    require 'shellwords'
+    run(Shellwords.join(RUBY_CMD + cmd), **run_options)
+  end
+
+  def run_script(script, status: false, chdir: nil)
+    run_ruby(stdin_data: script, status: status, chdir: chdir)
+  end
+
   private
+
+  RUBY_CMD =
+    %w[--disable gems --disable did_you_mean --disable rubyopt].unshift(
+      RbConfig.ruby
+    ).freeze
 
   def __run_proc(stdin_data, in_write)
     return :read unless stdin_data

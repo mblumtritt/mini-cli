@@ -22,6 +22,8 @@ class MainTest < Test
       name
       parse_argv
       run
+      run_ruby
+      run_script
       show_errors=
       show_errors?
       show_help
