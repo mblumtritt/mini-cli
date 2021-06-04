@@ -5,14 +5,12 @@ require 'shellwords'
 require_relative '../helper'
 
 class ExecTest < Minitest::Test
-  parallelize_me!
-
   def test_noop
-    assert_empty(assert_no_err('noop'))
+    assert_empty(assert_no_err('noop.rb'))
   end
 
   def test_noop_help
-    assert_equal("Usage: noop\n", assert_no_err('noop', '--help'))
+    assert_equal("Usage: noop\n", assert_no_err('noop.rb', '--help'))
   end
 
   def test_sequence
@@ -24,7 +22,7 @@ class ExecTest < Minitest::Test
       'after_2[]',
       'after_1[]'
     ]
-    assert_equal(expected, assert_no_err('sequence').split("\n"))
+    assert_equal(expected, assert_no_err('sequence.rb').split("\n"))
   end
 
   def test_sequence_help
@@ -35,7 +33,7 @@ class ExecTest < Minitest::Test
       '-x, --exit  early exit',
       '-e, --error exit with error'
     ]
-    assert_equal(expected, assert_no_err('sequence', '--help').split("\n"))
+    assert_equal(expected, assert_no_err('sequence.rb', '--help').split("\n"))
   end
 
   def test_sequence_early_exit
@@ -47,7 +45,7 @@ class ExecTest < Minitest::Test
       'after_2[]',
       'after_1[]'
     ]
-    assert_equal(expected, assert_no_err('sequence', '-x').split("\n"))
+    assert_equal(expected, assert_no_err('sequence.rb', '-x').split("\n"))
   end
 
   def test_sequence_error
@@ -59,7 +57,7 @@ class ExecTest < Minitest::Test
       'after_2[]',
       'after_1[]'
     ]
-    std, err, status = invoke('sequence', '-e')
+    std, err, status = invoke('sequence.rb', '-e')
     assert_same(42, status.exitstatus)
     assert_equal("sequence: !error!\n", err)
     assert_equal(expected, std.split("\n"))

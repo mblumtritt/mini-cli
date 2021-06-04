@@ -1,6 +1,4 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
-
 # demonstrates the call sequence
 
 require_relative '../../lib/mini-cli'
